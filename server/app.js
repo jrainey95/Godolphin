@@ -1,83 +1,76 @@
-// const express = require('express');
-// const mongoose = require('mongoose');
-// const session = require('express-session');
-// const mongoStore = require('express-mongo');
-// const MongoStore = require('connect-mongo');
+const express = require("express");
+const mongoose = require("mongoose");
+const session = require("express-session");
+var passport = require("passport");
+var crypto = require("crypto");
+var routes = require("./routes");
+const connection = require("./config/database");
 
+// Package documentation - https://www.npmjs.com/package/connect-mongo
+const MongoStore = require("connect-mongo")(session);
 
-// var app = express();
+// Need to require the entire Passport config module so app.js knows about it
+require("./config/passport");
 
+/**
+ * -------------- GENERAL SETUP ----------------
+ */
 
-// const dbString = 'mongodb: //localhost:27017/login_db';
-// const dbOptions = {
-//     useNewUrlParser: true,
-//     useUnifiedTopology: true 
-// }
+// Gives us access to variables set in the .env file via `process.env.VARIABLE_NAME` syntax
+require("dotenv").config();
 
-// const connection = mongoose.createConnection(dbString, dbOptions);
+// Create the Express application
+var app = express();
 
-// app.use(express.json());
-// app.use(express.urlencoded({extended: true}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// const seesionStore = new MongoStore({
-//     mongooseConnection: connection,
-//     collection: 'sessions'
-// });
+/**
+ * -------------- SESSION SETUP ----------------
+ */
+const sessionStore = new MongoStore({
+  mongooseConnection: connection,
+  collection: "sessions",
+});
 
+app.use(
+  session({
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: true,
+    store: sessionStore,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  })
+);
 
-// app.use(session({
-//     secret: 'some secret',
-//     resave: false,
-//     saveUninitialized: true,
-//     store: seesionStore,
-//     cookie: {
-//         maxAge: 1000 * 60 * 60 * 24
-//     }
-// }));
+// TODO
 
-// app.listen(3000);
+/**
+ * -------------- PASSPORT AUTHENTICATION ----------------
+ */
+require("./config/passport");
 
+app.use((req, res, next) => {
+  console.log(req.session);
+  console.log(req.user);
+  next();
+});
 
+app.use(passport.initialize());
+app.use(passport.session());
 
+/**
+ * -------------- ROUTES ----------------
+ */
 
+// Imports all of the routes from ./routes/index.js
+app.use(routes);
 
+/**
+ * -------------- SERVER ----------------
+ */
 
-
-
-
-// // // Middleware functions
-// // function middleware1(req, res, next) {
-// //     req.customProperty = 100;
-// //     console.log('I am a middleware');
-// //     next();
-// // }
-
-// // function middleware2(req, res, next) {
-// //     console.log(`The custom property value is: ${req.customProperty}`);
-// //     req.customProperty = 69;
-// //     next();
-// // }
-
-// // // Register middleware
-// // app.use(middleware1);
-// // app.use(middleware2);
-
-// // // Route handler
-// // app.get('/', (req, res, next) => {
-// //     console.log('I am the standard Express function');
-// //     res.send(`<h1>The Value is: ${req.customProperty}</h1>`);
-// // });
-
-// // // Error handler middleware
-// // function errorHandler(err, req, res, next) {
-// //     console.error(err); // Log the error for debugging
-// //     res.status(500).send('<h1>There was an error, please try again</h1>');
-// // }
-
-// // // Register error handler middleware
-// // app.use(errorHandler);
-
-// // // Start the server
-// // app.listen(3000, () => {
-// //     console.log('Server is listening on port 3000');
-// // });
+// Server listens on http://localhost:3000
+app.listen(3000);
