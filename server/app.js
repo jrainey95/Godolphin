@@ -1,13 +1,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
-var passport = require("passport");
-var crypto = require("crypto");
-var routes = require("./routes");
-const connection = require("./config/database");
-
-// Package documentation - https://www.npmjs.com/package/connect-mongo
+const passport = require("passport");
+const cors = require("cors");
 const MongoStore = require("connect-mongo")(session);
+const routes = require("./routes");
+const connection = require("./config/database");
 
 // Need to require the entire Passport config module so app.js knows about it
 require("./config/passport");
@@ -20,7 +18,15 @@ require("./config/passport");
 require("dotenv").config();
 
 // Create the Express application
-var app = express();
+const app = express();
+
+// CORS configuration
+app.use(
+  cors({
+    origin: "http://localhost:3001", // React frontend URL
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -45,21 +51,17 @@ app.use(
   })
 );
 
-// TODO
-
 /**
  * -------------- PASSPORT AUTHENTICATION ----------------
  */
-require("./config/passport");
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use((req, res, next) => {
   console.log(req.session);
   console.log(req.user);
   next();
 });
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 /**
  * -------------- ROUTES ----------------
@@ -73,4 +75,6 @@ app.use(routes);
  */
 
 // Server listens on http://localhost:3000
-app.listen(3000);
+app.listen(3000, () => {
+  console.log("Server is running on http://localhost:3000");
+});
